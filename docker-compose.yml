@@ -1,51 +1,60 @@
-version: "3"
+version: "3.5"
 services:
-    server:
-        build: zabbix-server
+    zabbix-server-pgsql:
+        image: zabbix/zabbix-server-pgsql:alpine-5.0-latest
+        restart: unless-stopped
         depends_on: 
-            - db
+            - postgres-server
         environment: 
-            - DB_SERVER_HOST=127.0.0.1
+            - DB_SERVER_HOST=postgres-server
             - DB_SERVER_PORT=5432
             - POSTGRES_USER=zabbix
-            - POSTGRES_PASSWORD=123456
+            - POSTGRES_PASSWORD=zabbix_pwd
             - POSTGRES_DB=zabbix
-        network_mode: host
+        ports:
+            - "10051:10051"
+        networks:
+            - zabbix
 
-    frontend:
-        image: zabbix/zabbix-web-nginx-pgsql:alpine-3.2-latest
+    zabbix-web-nginx-pgsql:
+        image: zabbix/zabbix-web-nginx-pgsql:alpine-5.0-latest
         depends_on: 
-            - server
+            - zabbix-server-pgsql
         environment: 
-            - DB_SERVER_HOST=127.0.0.1
+            - DB_SERVER_HOST=postgres-server
             - POSTGRES_USER=zabbix
-            - POSTGRES_PASSWORD=123456
-            - ZBX_SERVER_HOST=127.0.0.1
-            - TZ=Europe/Prague
-        network_mode: host
+            - POSTGRES_PASSWORD=zabbix_pwd
+            - ZBX_SERVER_HOST=zabbix-server-pgsql
+            - PHP_TZ=Asia/Tehran
+        ports:
+            - "80:8080"
+        networks:
+            - zabbix
     
     agent:
-        image: zabbix/zabbix-agent:alpine-3.2-latest
+        image: zabbix/zabbix-agent2:latest
         privileged: true
         depends_on: 
-            - server
+            - zabbix-server-pgsql
         environment: 
-            - ZBX_HOSTNAME=zabbix-monitoring
-            - ZBX_SERVER_HOST=127.0.0.1
-        network_mode: host
-
-    db:
-        image: postgres:9.6.2-alpine
-        volumes:
-            - "./pgsql_data:/var/lib/postgresql/data/pgdata"
+            - ZBX_HOSTNAME=Zabbix server
+            - ZBX_SERVER_HOST=zabbix-server-pgsql
+        ports:
+            - "10050:10050"
+        networks:
+            - zabbix
+    postgres-server:
+        image: postgres:latest
+        #        volumes:
+                #            - "./pgsql_data:/var/lib/postgresql/data/pgdata"
         environment: 
             - POSTGRES_USER=zabbix
-            - POSTGRES_PASSWORD=123456
+            - POSTGRES_PASSWORD=zabbix_pwd
             - POSTGRES_DB=zabbix
-            - PGDATA=/var/lib/postgresql/data/pgdata
-        network_mode: host
-        
+              #            - PGDATA=/var/lib/postgresql/data/pgdata
+        ports:
+            - "5432:5432"
+        networks:
+            - zabbix
 networks:
-    default:
-        external:
-            name: "host"
+    zabbix:
