@@ -14,3 +14,11 @@ please change the ZBX_SERVER_HOST and again run the docker-compose again
 
 wish you all the best
 behnam:)
+
+by the way for agent work in local docker
+
+you must go to the webUI configuration and
+change IP to the DNS and for name of dns 
+set agent
+
+dns name == agent
